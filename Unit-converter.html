@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Area &amp; Length Converter</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg:#0a0a0f; --surface:#13131c; --card:#1a1a28;
+    --accent:#00e5b0; --purple:#7b5ea7; --red:#ff6b6b;
+    --orange:#f5a623; --blue:#4ea8de; --green:#6bcb77;
+    --text:#f0eff8; --muted:#6b6b8a; --border:#2a2a3d;
+  }
+  body {
+    background:var(--bg); color:var(--text);
+    font-family:'Space Mono',monospace;
+    min-height:100vh; display:flex; flex-direction:column;
+    align-items:center; padding:2.5rem 1rem 6rem; overflow-x:hidden;
+  }
+  body::before {
+    content:''; position:fixed; inset:0;
+    background-image:
+      linear-gradient(rgba(0,229,176,.025) 1px,transparent 1px),
+      linear-gradient(90deg,rgba(0,229,176,.025) 1px,transparent 1px);
+    background-size:40px 40px; pointer-events:none; z-index:0;
+  }
+  .wrapper { position:relative; z-index:1; width:100%; max-width:580px; }
+
+  /* ── Header ── */
+  header { text-align:center; margin-bottom:2.5rem; animation:fadeDown .5s ease both; }
+  .sup { font-family:'Syne',sans-serif; font-size:.68rem; letter-spacing:.3em; color:var(--accent); text-transform:uppercase; margin-bottom:.4rem; }
+  header h1 { font-family:'Syne',sans-serif; font-size:clamp(1.8rem,7vw,2.8rem); font-weight:800; line-height:1.1; background:linear-gradient(135deg,var(--text) 35%,var(--accent)); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
+  header p { color:var(--muted); font-size:.72rem; margin-top:.5rem; letter-spacing:.05em; }
+
+  /* ── Section ── */
+  .sec { margin-bottom:2.8rem; }
+  .sec-label { font-family:'Syne',sans-serif; font-size:.62rem; font-weight:700; letter-spacing:.22em; text-transform:uppercase; color:var(--muted); margin-bottom:.8rem; display:flex; align-items:center; gap:.6rem; }
+  .sec-label::after { content:''; flex:1; height:1px; background:var(--border); }
+  .dot { width:6px; height:6px; border-radius:50%; background:var(--sc,var(--accent)); flex-shrink:0; display:inline-block; }
+
+  /* ── Cards ── */
+  .card {
+    background:var(--card); border:1px solid var(--border); border-radius:18px;
+    padding:1.4rem; position:relative; overflow:hidden; margin-bottom:.75rem;
+  }
+  .card::before { content:''; position:absolute; top:0;left:0;right:0; height:2px; background:linear-gradient(90deg,transparent,var(--tc,var(--accent)),transparent); }
+  .card-hint { font-size:.6rem; letter-spacing:.15em; text-transform:uppercase; color:var(--muted); margin-bottom:.85rem; }
+  .card-hint b { font-weight:400; }
+
+  /* ── Inputs ── */
+  .field { flex:1; min-width:0; }
+  .flbl { font-size:.58rem; letter-spacing:.15em; text-transform:uppercase; color:var(--muted); margin-bottom:.3rem; }
+  input[type=number] {
+    width:100%; background:var(--surface); border:1px solid var(--border); border-radius:10px;
+    color:var(--text); font-family:'Syne',sans-serif; font-size:1.45rem; font-weight:700;
+    padding:.6rem .85rem; outline:none; transition:border-color .2s,box-shadow .2s;
+    -moz-appearance:textfield;
+  }
+  input[type=number]::-webkit-inner-spin-button,
+  input[type=number]::-webkit-outer-spin-button { -webkit-appearance:none; }
+  input[type=number]:focus { border-color:var(--fc,var(--accent)); box-shadow:0 0 0 3px var(--fg,rgba(0,229,176,.12)); }
+
+  .times { font-family:'Syne',sans-serif; font-size:1.4rem; font-weight:800; color:var(--tc,var(--accent)); padding-bottom:.55rem; flex-shrink:0; }
+  .badge { font-family:'Syne',sans-serif; font-weight:700; font-size:.8rem; padding:0 .9rem; border-radius:10px; height:50px; display:flex; align-items:center; flex-shrink:0; background:var(--bc,var(--accent)); color:var(--bfc,#000); }
+  .row { display:flex; gap:.6rem; align-items:flex-end; }
+  .area-strip { display:flex; align-items:center; gap:.7rem; padding-top:.8rem; border-top:1px solid var(--border); margin-top:.8rem; }
+  .albl { font-size:.58rem; letter-spacing:.18em; text-transform:uppercase; color:var(--muted); flex-shrink:0; }
+  .aval { flex:1; font-family:'Syne',sans-serif; font-size:1rem; font-weight:800; color:var(--sc,var(--accent)); }
+  .clr { background:transparent; border:1px solid var(--border); color:var(--muted); border-radius:10px; padding:.45rem .8rem; cursor:pointer; font-family:'Space Mono',monospace; font-size:.65rem; transition:all .2s; }
+  .clr:hover { border-color:var(--red); color:var(--red); }
+
+  /* ── Output cards ── */
+  .ogrid { display:grid; gap:.7rem; }
+  .oc { background:var(--card); border:1px solid var(--border); border-radius:14px; padding:1rem 1.3rem; display:flex; align-items:center; justify-content:space-between; gap:1rem; cursor:pointer; position:relative; overflow:hidden; transition:transform .15s,border-color .2s,box-shadow .2s; }
+  .oc:hover { transform:translateX(4px); border-color:var(--oc); box-shadow:-3px 0 0 0 var(--oc); }
+  .oc-name { font-family:'Syne',sans-serif; font-weight:700; font-size:.82rem; color:var(--oc); letter-spacing:.05em; }
+  .oc-full { font-size:.6rem; color:var(--muted); letter-spacing:.1em; text-transform:uppercase; margin-top:.15rem; }
+  .oc-val { font-family:'Syne',sans-serif; font-size:clamp(1.1rem,3.5vw,1.5rem); font-weight:800; color:var(--text); text-align:right; word-break:break-all; }
+  .oc-val.ph { color:var(--muted); }
+  .cph { position:absolute; top:.35rem; right:.55rem; font-size:.48rem; color:var(--muted); opacity:0; transition:opacity .2s; letter-spacing:.1em; text-transform:uppercase; }
+  .oc:hover .cph { opacity:1; }
+
+  /* ── Bidirectional ── */
+  .bi { background:var(--card); border:1px solid var(--border); border-radius:18px; padding:1.4rem; position:relative; overflow:hidden; }
+  .bi::before { content:''; position:absolute; top:0;left:0;right:0; height:2px; background:linear-gradient(90deg,transparent,var(--sc,var(--accent)),transparent); }
+  .bi-row { display:grid; grid-template-columns:1fr 34px 1fr; align-items:center; }
+  .bi-col { display:flex; flex-direction:column; gap:.4rem; }
+  .bi-lbl { font-size:.58rem; letter-spacing:.18em; text-transform:uppercase; color:var(--muted); }
+  .res-box { background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:.6rem .85rem; min-height:53px; display:flex; flex-direction:column; justify-content:center; margin-top:.5rem; }
+  .res-val { font-family:'Syne',sans-serif; font-size:1.3rem; font-weight:800; color:var(--sc,var(--accent)); word-break:break-all; line-height:1.1; }
+  .res-val.empty { color:var(--muted); }
+  .res-unit { font-size:.56rem; color:var(--muted); letter-spacing:.12em; text-transform:uppercase; margin-top:.15rem; }
+  .swap { display:flex; align-items:center; justify-content:center; font-size:1rem; color:var(--muted); padding-top:1.4rem; }
+
+  /* ── 4-way length grid ── */
+  .lgrid { display:grid; grid-template-columns:1fr 1fr; gap:.85rem; }
+  .lgrid .field .flbl { margin-bottom:.4rem; }
+
+  /* ── OR divider ── */
+  .or { text-align:center; font-size:.6rem; letter-spacing:.2em; text-transform:uppercase; color:var(--muted); margin:.35rem 0; }
+
+  /* ── Formula strip ── */
+  .fnote { font-size:.56rem; color:var(--muted); letter-spacing:.1em; text-transform:uppercase; margin-top:.85rem; text-align:center; line-height:2.2; }
+  .fnote b { font-weight:400; color:var(--sc,var(--accent)); }
+
+  /* ── Toast ── */
+  .toast { position:fixed; bottom:2rem; left:50%; transform:translateX(-50%) translateY(70px); background:var(--accent); color:#000; padding:.55rem 1.3rem; border-radius:50px; font-family:'Syne',sans-serif; font-weight:700; font-size:.78rem; letter-spacing:.04em; transition:transform .3s cubic-bezier(.34,1.56,.64,1); z-index:999; pointer-events:none; }
+  .toast.show { transform:translateX(-50%) translateY(0); }
+
+  @keyframes fadeDown { from{opacity:0;transform:translateY(-18px)} to{opacity:1;transform:translateY(0)} }
+  @keyframes fadeUp   { from{opacity:0;transform:translateY(18px)}  to{opacity:1;transform:translateY(0)} }
+  @keyframes pop { 0%{transform:scale(1)} 50%{transform:scale(1.04)} 100%{transform:scale(1)} }
+  .pop { animation:pop .2s ease; }
+  .s1{animation:fadeUp .5s .05s ease both}
+  .s2{animation:fadeUp .5s .12s ease both}
+  .s3{animation:fadeUp .5s .19s ease both}
+  .s4{animation:fadeUp .5s .26s ease both}
+  .s5{animation:fadeUp .5s .33s ease both}
+  .s6{animation:fadeUp .5s .40s ease both}
+  .s7{animation:fadeUp .5s .47s ease both}
+  .s8{animation:fadeUp .5s .54s ease both}
+  .s9{animation:fadeUp .5s .61s ease both}
+
+  /* ── Footer ── */
+  .footer {
+    text-align:center; margin-top:3.5rem; padding-top:1.5rem;
+    border-top:1px solid var(--border);
+  }
+  .footer-text {
+    font-family:'Syne',sans-serif; font-size:.65rem; font-weight:700;
+    letter-spacing:.22em; text-transform:uppercase; color:var(--muted);
+  }
+  .footer-name {
+    display:block; margin-top:.35rem;
+    font-family:'Syne',sans-serif; font-size:1rem; font-weight:800;
+    background:linear-gradient(135deg,var(--accent),var(--blue));
+    -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text;
+    letter-spacing:.04em;
+  }
+</style>
+</head>
+<body>
+<div class="wrapper">
+
+<header>
+  <div class="sup">Area &amp; Length Converter</div>
+  <h1>Unit Converter</h1>
+  <p>Area · Volume · Length — all in one place</p>
+</header>
+
+<!-- ══ 1. m² L×W → all ══ -->
+<div class="sec s1" style="--sc:var(--accent)">
+  <div class="sec-label"><span class="dot"></span>Meter² → All Area Units</div>
+  <div class="card" style="--tc:var(--accent)">
+    <div class="card-hint">Enter dimensions in <b style="color:var(--accent)">meters (m)</b></div>
+    <div class="row" style="margin-bottom:.8rem">
+      <div class="field"><div class="flbl">Length</div><input type=number id="lenA" placeholder="0" min=0 step=any oninput="calcLW()"></div>
+      <div class="times">×</div>
+      <div class="field"><div class="flbl">Width</div><input type=number id="widA" placeholder="0" min=0 step=any oninput="calcLW()"></div>
+      <div class="badge">m</div>
+    </div>
+    <div class="area-strip">
+      <span class="albl">Area</span>
+      <span class="aval" id="lwArea">— m²</span>
+      <button class="clr" onclick="clearLW()">Clear</button>
+    </div>
+  </div>
+  <div class="ogrid">
+    <div class="oc" style="--oc:#00e5b0" onclick="cp('lw-sqft')"><div class="cph">copy</div><div><div class="oc-name">sq ft</div><div class="oc-full">Square Feet</div></div><div class="oc-val ph" id="lw-sqft">—</div></div>
+    <div class="oc" style="--oc:#7b5ea7" onclick="cp('lw-cent')"><div class="cph">copy</div><div><div class="oc-name">Cent</div><div class="oc-full">Cent (land)</div></div><div class="oc-val ph" id="lw-cent">—</div></div>
+    <div class="oc" style="--oc:#ff6b6b" onclick="cp('lw-are')"><div class="cph">copy</div><div><div class="oc-name">Are</div><div class="oc-full">Are</div></div><div class="oc-val ph" id="lw-are">—</div></div>
+    <div class="oc" style="--oc:#f5a623" onclick="cp('lw-ha')"><div class="cph">copy</div><div><div class="oc-name">ha</div><div class="oc-full">Hectare</div></div><div class="oc-val ph" id="lw-ha">—</div></div>
+    <div class="oc" style="--oc:#4ea8de" onclick="cp('lw-ac')"><div class="cph">copy</div><div><div class="oc-name">ac</div><div class="oc-full">Acre</div></div><div class="oc-val ph" id="lw-ac">—</div></div>
+  </div>
+  <div class="fnote"><b>1 m²</b> = 10.7639 sq ft &nbsp;·&nbsp; <b>1 m²</b> = 0.024711 cent &nbsp;·&nbsp; <b>1 m²</b> = 0.01 are</div>
+</div>
+
+<!-- ══ 2. Sq Ft ↔ Cent ══ -->
+<div class="sec s2" style="--sc:var(--purple)">
+  <div class="sec-label"><span class="dot" style="--sc:var(--purple)"></span>Square Feet ↔ Cent</div>
+  <div class="bi">
+    <div class="bi-row">
+      <div class="bi-col">
+        <div class="bi-lbl">Square Feet</div>
+        <input type=number id="sqftIn" placeholder="0" min=0 step=any style="--fc:var(--purple);--fg:rgba(123,94,167,.15)" oninput="biConv('sqftIn','centOut',1/435.6)">
+        <div class="res-box"><div class="res-val empty" id="centOut">—</div><div class="res-unit">Cent</div></div>
+      </div>
+      <div class="swap">⇄</div>
+      <div class="bi-col">
+        <div class="bi-lbl">Cent</div>
+        <input type=number id="centIn" placeholder="0" min=0 step=any style="--fc:var(--purple);--fg:rgba(123,94,167,.15)" oninput="biConv('centIn','sqftOut',435.6)">
+        <div class="res-box"><div class="res-val empty" id="sqftOut">—</div><div class="res-unit">Sq Ft</div></div>
+      </div>
+    </div>
+    <div class="fnote"><b>1 Cent</b> = 435.6 sq ft &nbsp;·&nbsp; <b>1 sq ft</b> = 0.002296 Cent</div>
+  </div>
+</div>
+
+<!-- ══ 3. Are ↔ Cent ══ -->
+<div class="sec s3" style="--sc:var(--orange)">
+  <div class="sec-label"><span class="dot" style="--sc:var(--orange)"></span>Are ↔ Cent</div>
+  <div class="bi">
+    <div class="bi-row">
+      <div class="bi-col">
+        <div class="bi-lbl">Are</div>
+        <input type=number id="areIn" placeholder="0" min=0 step=any style="--fc:var(--orange);--fg:rgba(245,166,35,.15)" oninput="biConv('areIn','centFromAre',2.47105)">
+        <div class="res-box"><div class="res-val empty" id="centFromAre">—</div><div class="res-unit">Cent</div></div>
+      </div>
+      <div class="swap">⇄</div>
+      <div class="bi-col">
+        <div class="bi-lbl">Cent</div>
+        <input type=number id="centIn2" placeholder="0" min=0 step=any style="--fc:var(--orange);--fg:rgba(245,166,35,.15)" oninput="biConv('centIn2','areFromCent',0.404686)">
+        <div class="res-box"><div class="res-val empty" id="areFromCent">—</div><div class="res-unit">Are</div></div>
+      </div>
+    </div>
+    <div class="fnote"><b>1 Are</b> = 2.47105 Cent &nbsp;·&nbsp; <b>1 Cent</b> = 0.404686 Are</div>
+  </div>
+</div>
+
+<!-- ══ 4. m² ↔ sq ft ══ -->
+<div class="sec s4" style="--sc:var(--blue)">
+  <div class="sec-label"><span class="dot" style="--sc:var(--blue)"></span>Square Meter ↔ Square Feet</div>
+  <div class="bi">
+    <div class="bi-row">
+      <div class="bi-col">
+        <div class="bi-lbl">Square Meter (m²)</div>
+        <input type=number id="sqmIn" placeholder="0" min=0 step=any style="--fc:var(--blue);--fg:rgba(78,168,222,.15)" oninput="biConv('sqmIn','sqftFromSqm',10.7639)">
+        <div class="res-box"><div class="res-val empty" id="sqftFromSqm">—</div><div class="res-unit">Sq Ft</div></div>
+      </div>
+      <div class="swap">⇄</div>
+      <div class="bi-col">
+        <div class="bi-lbl">Square Feet (ft²)</div>
+        <input type=number id="sqftIn2" placeholder="0" min=0 step=any style="--fc:var(--blue);--fg:rgba(78,168,222,.15)" oninput="biConv('sqftIn2','sqmFromSqft',0.092903)">
+        <div class="res-box"><div class="res-val empty" id="sqmFromSqft">—</div><div class="res-unit">m²</div></div>
+      </div>
+    </div>
+    <div class="fnote"><b>1 m²</b> = 10.7639 sq ft &nbsp;·&nbsp; <b>1 sq ft</b> = 0.092903 m²</div>
+  </div>
+</div>
+
+<!-- ══ 5. Cubic ══ -->
+<div class="sec s5" style="--sc:var(--green)">
+  <div class="sec-label"><span class="dot" style="--sc:var(--green)"></span>Cubic Volume Calculator</div>
+  <div class="card" style="--tc:var(--accent)">
+    <div class="card-hint">Input in <b style="color:var(--accent)">Centimeters (cm)</b></div>
+    <div class="row">
+      <div class="field"><div class="flbl">Length</div><input type=number id="cbLcm" placeholder="0" min=0 step=any oninput="calcCubic('cm')"></div>
+      <div class="times">×</div>
+      <div class="field"><div class="flbl">Width</div><input type=number id="cbWcm" placeholder="0" min=0 step=any oninput="calcCubic('cm')"></div>
+      <div class="times">×</div>
+      <div class="field"><div class="flbl">Height</div><input type=number id="cbHcm" placeholder="0" min=0 step=any oninput="calcCubic('cm')"></div>
+      <div class="badge">cm</div>
+    </div>
+  </div>
+  <div class="or">— or —</div>
+  <div class="card" style="--tc:var(--blue)">
+    <div class="card-hint">Input in <b style="color:var(--blue)">Meters (m)</b></div>
+    <div class="row">
+      <div class="field"><div class="flbl">Length</div><input type=number id="cbLm" placeholder="0" min=0 step=any style="--fc:var(--blue);--fg:rgba(78,168,222,.15)" oninput="calcCubic('m')"></div>
+      <div class="times" style="color:var(--blue)">×</div>
+      <div class="field"><div class="flbl">Width</div><input type=number id="cbWm" placeholder="0" min=0 step=any style="--fc:var(--blue);--fg:rgba(78,168,222,.15)" oninput="calcCubic('m')"></div>
+      <div class="times" style="color:var(--blue)">×</div>
+      <div class="field"><div class="flbl">Height</div><input type=number id="cbHm" placeholder="0" min=0 step=any style="--fc:var(--blue);--fg:rgba(78,168,222,.15)" oninput="calcCubic('m')"></div>
+      <div class="badge" style="--bc:var(--blue);--bfc:#fff">m</div>
+    </div>
+  </div>
+  <div class="ogrid">
+    <div class="oc" style="--oc:#00e5b0" onclick="cp('cb-cm3')"><div class="cph">copy</div><div><div class="oc-name">cm³</div><div class="oc-full">Cubic Centimeters</div></div><div class="oc-val ph" id="cb-cm3">—</div></div>
+    <div class="oc" style="--oc:#4ea8de" onclick="cp('cb-m3')"><div class="cph">copy</div><div><div class="oc-name">m³</div><div class="oc-full">Cubic Meters</div></div><div class="oc-val ph" id="cb-m3">—</div></div>
+    <div class="oc" style="--oc:#6bcb77" onclick="cp('cb-ltr')"><div class="cph">copy</div><div><div class="oc-name">L</div><div class="oc-full">Liters</div></div><div class="oc-val ph" id="cb-ltr">—</div></div>
+    <div class="oc" style="--oc:#7b5ea7" onclick="cp('cb-ml')"><div class="cph">copy</div><div><div class="oc-name">mL</div><div class="oc-full">Milliliters</div></div><div class="oc-val ph" id="cb-ml">—</div></div>
+    <div class="oc" style="--oc:#f5a623" onclick="cp('cb-ft3')"><div class="cph">copy</div><div><div class="oc-name">ft³</div><div class="oc-full">Cubic Feet</div></div><div class="oc-val ph" id="cb-ft3">—</div></div>
+    <div class="oc" style="--oc:#ff6b6b" onclick="cp('cb-in3')"><div class="cph">copy</div><div><div class="oc-name">in³</div><div class="oc-full">Cubic Inches</div></div><div class="oc-val ph" id="cb-in3">—</div></div>
+  </div>
+  <div class="fnote"><b>1 m³</b> = 1,000,000 cm³ &nbsp;·&nbsp; <b>1 m³</b> = 1000 L &nbsp;·&nbsp; <b>1 m³</b> = 35.3147 ft³</div>
+</div>
+
+<!-- ══ 6. cm ↔ m / in / ft ══ -->
+<div class="sec s6" style="--sc:var(--red)">
+  <div class="sec-label"><span class="dot" style="--sc:var(--red)"></span>Length Converter — cm ↔ m / inches / feet</div>
+  <div class="card" style="--tc:var(--red)">
+    <div class="card-hint">Type in any field — all others update instantly</div>
+    <div class="lgrid">
+      <div class="field">
+        <div class="flbl" style="color:var(--red)">Centimeter (cm)</div>
+        <input type=number id="lcCm" placeholder="0" min=0 step=any style="--fc:var(--red);--fg:rgba(255,107,107,.15)" oninput="calcLen('cm')">
+      </div>
+      <div class="field">
+        <div class="flbl" style="color:var(--blue)">Meter (m)</div>
+        <input type=number id="lcM" placeholder="0" min=0 step=any style="--fc:var(--blue);--fg:rgba(78,168,222,.15)" oninput="calcLen('m')">
+      </div>
+      <div class="field">
+        <div class="flbl" style="color:var(--orange)">Inches (in)</div>
+        <input type=number id="lcIn" placeholder="0" min=0 step=any style="--fc:var(--orange);--fg:rgba(245,166,35,.15)" oninput="calcLen('in')">
+      </div>
+      <div class="field">
+        <div class="flbl" style="color:var(--green)">Feet (ft)</div>
+        <input type=number id="lcFt" placeholder="0" min=0 step=any style="--fc:var(--green);--fg:rgba(107,203,119,.15)" oninput="calcLen('ft')">
+      </div>
+    </div>
+  </div>
+  <div class="fnote">
+    <b>1 cm</b> = 0.01 m &nbsp;·&nbsp; <b>1 cm</b> = 0.3937 in &nbsp;·&nbsp; <b>1 cm</b> = 0.03281 ft<br>
+    <b>1 m</b> = 100 cm &nbsp;·&nbsp; <b>1 in</b> = 2.54 cm &nbsp;·&nbsp; <b>1 ft</b> = 30.48 cm
+  </div>
+</div>
+
+
+<!-- ====== 7. Cent ↔ Square Feet ====== -->
+<div class="sec s7" style="--sc:var(--purple)">
+  <div class="sec-label"><span class="dot" style="--sc:var(--purple)"></span>Cent &#8596; Square Feet</div>
+  <div class="bi">
+    <div class="bi-row">
+      <div class="bi-col">
+        <div class="bi-lbl">Cent</div>
+        <input type=number id="c2sf_cent" placeholder="0" min=0 step=any style="--fc:var(--purple);--fg:rgba(123,94,167,.15)" oninput="biConv('c2sf_cent','c2sf_sqft',435.6)">
+        <div class="res-box"><div class="res-val empty" id="c2sf_sqft">&#8212;</div><div class="res-unit">Sq Ft</div></div>
+      </div>
+      <div class="swap">&#8644;</div>
+      <div class="bi-col">
+        <div class="bi-lbl">Square Feet</div>
+        <input type=number id="sf2c_sqft" placeholder="0" min=0 step=any style="--fc:var(--purple);--fg:rgba(123,94,167,.15)" oninput="biConv('sf2c_sqft','sf2c_cent',1/435.6)">
+        <div class="res-box"><div class="res-val empty" id="sf2c_cent">&#8212;</div><div class="res-unit">Cent</div></div>
+      </div>
+    </div>
+    <div class="fnote"><b>1 Cent</b> = 435.6 sq ft &nbsp;&middot;&nbsp; <b>1 sq ft</b> = 0.002296 Cent</div>
+  </div>
+</div>
+
+<!-- ====== 8. Cent ↔ Square Meter ====== -->
+<div class="sec s8" style="--sc:var(--blue)">
+  <div class="sec-label"><span class="dot" style="--sc:var(--blue)"></span>Cent &#8596; Square Meter</div>
+  <div class="bi">
+    <div class="bi-row">
+      <div class="bi-col">
+        <div class="bi-lbl">Cent</div>
+        <input type=number id="c2sm_cent" placeholder="0" min=0 step=any style="--fc:var(--blue);--fg:rgba(78,168,222,.15)" oninput="biConv('c2sm_cent','c2sm_sqm',40.4686)">
+        <div class="res-box"><div class="res-val empty" id="c2sm_sqm">&#8212;</div><div class="res-unit">m&#178;</div></div>
+      </div>
+      <div class="swap">&#8644;</div>
+      <div class="bi-col">
+        <div class="bi-lbl">Square Meter</div>
+        <input type=number id="sm2c_sqm" placeholder="0" min=0 step=any style="--fc:var(--blue);--fg:rgba(78,168,222,.15)" oninput="biConv('sm2c_sqm','sm2c_cent',1/40.4686)">
+        <div class="res-box"><div class="res-val empty" id="sm2c_cent">&#8212;</div><div class="res-unit">Cent</div></div>
+      </div>
+    </div>
+    <div class="fnote"><b>1 Cent</b> = 40.4686 m&#178; &nbsp;&middot;&nbsp; <b>1 m&#178;</b> = 0.024711 Cent</div>
+  </div>
+</div>
+
+<!-- ====== 9. Board Feet Calculator ====== -->
+<div class="sec s9" style="--sc:var(--orange)">
+  <div class="sec-label"><span class="dot" style="--sc:var(--orange)"></span>Board Feet Calculator</div>
+  <div class="card" style="--tc:var(--orange)">
+    <div class="card-hint">Enter dimensions in <b style="color:var(--orange)">Inches (in)</b> &nbsp;&#8212;&nbsp; Formula: (H &times; L &times; W) &divide; 1728</div>
+    <div class="row" style="margin-bottom:.85rem">
+      <div class="field">
+        <div class="flbl" style="color:var(--orange)">Height</div>
+        <input type=number id="bfH" placeholder="0" min=0 step=any style="--fc:var(--orange);--fg:rgba(245,166,35,.15)" oninput="calcBoardFeet()">
+      </div>
+      <div class="times" style="color:var(--orange)">&#215;</div>
+      <div class="field">
+        <div class="flbl" style="color:var(--orange)">Length</div>
+        <input type=number id="bfL" placeholder="0" min=0 step=any style="--fc:var(--orange);--fg:rgba(245,166,35,.15)" oninput="calcBoardFeet()">
+      </div>
+      <div class="times" style="color:var(--orange)">&#215;</div>
+      <div class="field">
+        <div class="flbl" style="color:var(--orange)">Width</div>
+        <input type=number id="bfW" placeholder="0" min=0 step=any style="--fc:var(--orange);--fg:rgba(245,166,35,.15)" oninput="calcBoardFeet()">
+      </div>
+      <div class="badge" style="--bc:var(--orange);--bfc:#000">in</div>
+    </div>
+    <div class="area-strip" style="border-top:1px solid var(--border); padding-top:.85rem;">
+      <span class="albl">Result</span>
+      <span class="aval" style="color:var(--orange); font-size:1.3rem;" id="bfResult">&#8212;</span>
+      <button class="clr" onclick="clearBF()">Clear</button>
+    </div>
+  </div>
+  <div class="fnote">
+    <b>Formula</b>: (Height &times; Length &times; Width) &divide; 1728 &nbsp;&#183;&nbsp; <b>1 board foot</b> = 144 in&#178; &times; 1 in thick
+  </div>
+</div>
+
+<!-- Footer -->
+<div class="footer">
+  <div class="footer-text">Developed &amp; Designed by</div>
+  <span class="footer-name">Shamsudeen EP</span>
+</div>
+
+</div><!-- end wrapper -->
+<div class="toast" id="toast">Copied!</div>
+
+<script>
+/* ── helpers ── */
+function fmt(v, d) {
+  if (v === 0) return '0';
+  if (Math.abs(v) >= 1e9) return v.toExponential(4);
+  return parseFloat(v.toFixed(d)).toLocaleString('en-US', { maximumFractionDigits: d });
+}
+function dec(v) {
+  const a = Math.abs(v);
+  if (a >= 10000) return 2;
+  if (a >= 1)     return 4;
+  return 6;
+}
+function popEl(el) { el.classList.remove('pop'); void el.offsetWidth; el.classList.add('pop'); }
+
+/* ── 1. L×W area converter ── */
+const lwMap = { 'lw-sqft':10.76391, 'lw-cent':0.024711, 'lw-are':0.01, 'lw-ha':0.0001, 'lw-ac':0.000247105 };
+function calcLW() {
+  const l = parseFloat(document.getElementById('lenA').value);
+  const w = parseFloat(document.getElementById('widA').value);
+  const ok = !isNaN(l) && !isNaN(w) && l >= 0 && w >= 0;
+  const sqm = ok ? l * w : NaN;
+  document.getElementById('lwArea').textContent = ok ? fmt(sqm,4)+' m²' : '— m²';
+  Object.entries(lwMap).forEach(([id,f]) => {
+    const el = document.getElementById(id);
+    if (!ok) { el.textContent='—'; el.classList.add('ph'); }
+    else { const r=sqm*f; el.textContent=fmt(r,dec(r)); el.classList.remove('ph'); popEl(el); }
+  });
+}
+function clearLW() {
+  document.getElementById('lenA').value = '';
+  document.getElementById('widA').value = '';
+  calcLW();
+  document.getElementById('lenA').focus();
+}
+
+/* ── 2-4. Bidirectional converters ── */
+function biConv(inId, outId, factor) {
+  const v = parseFloat(document.getElementById(inId).value);
+  const el = document.getElementById(outId);
+  if (isNaN(v) || v < 0) { el.textContent='—'; el.classList.add('empty'); }
+  else { const r=v*factor; el.textContent=fmt(r,dec(r)); el.classList.remove('empty'); }
+}
+
+/* ── 5. Cubic ── */
+function calcCubic(src) {
+  const g = id => parseFloat(document.getElementById(id).value);
+  const s = (id,v) => { document.getElementById(id).value = v; };
+  let cm3;
+  if (src === 'cm') {
+    const l=g('cbLcm'), w=g('cbWcm'), h=g('cbHcm');
+    if (isNaN(l)||isNaN(w)||isNaN(h)||l<0||w<0||h<0) { cubicEmpty(); return; }
+    cm3 = l*w*h;
+    s('cbLm',fmt(l/100,6)); s('cbWm',fmt(w/100,6)); s('cbHm',fmt(h/100,6));
+  } else {
+    const l=g('cbLm'), w=g('cbWm'), h=g('cbHm');
+    if (isNaN(l)||isNaN(w)||isNaN(h)||l<0||w<0||h<0) { cubicEmpty(); return; }
+    cm3 = l*w*h*1e6;
+    s('cbLcm',fmt(l*100,4)); s('cbWcm',fmt(w*100,4)); s('cbHcm',fmt(h*100,4));
+  }
+  const m3=cm3/1e6, ltr=m3*1000, ml=cm3, ft3=m3*35.3147, in3=cm3*0.0610237;
+  [['cb-cm3',cm3],['cb-m3',m3],['cb-ltr',ltr],['cb-ml',ml],['cb-ft3',ft3],['cb-in3',in3]].forEach(([id,v])=>{
+    const el=document.getElementById(id);
+    el.textContent=fmt(v,dec(v)); el.classList.remove('ph'); popEl(el);
+  });
+}
+function cubicEmpty() {
+  ['cb-cm3','cb-m3','cb-ltr','cb-ml','cb-ft3','cb-in3'].forEach(id=>{
+    const el=document.getElementById(id); el.textContent='—'; el.classList.add('ph');
+  });
+}
+
+/* ── 6. Length converter cm ↔ m / in / ft ── */
+// all factors relative to cm (i.e. 1 unit = X cm)
+const lenToCm = { cm:1, m:100, in:2.54, ft:30.48 };
+const lenIds   = { cm:'lcCm', m:'lcM', in:'lcIn', ft:'lcFt' };
+
+function calcLen(src) {
+  const v = parseFloat(document.getElementById(lenIds[src]).value);
+  if (isNaN(v) || v < 0) {
+    // clear others
+    Object.keys(lenIds).forEach(u => { if (u!==src) document.getElementById(lenIds[u]).value=''; });
+    return;
+  }
+  const cm = v * lenToCm[src]; // convert input to cm
+  Object.entries(lenIds).forEach(([unit, id]) => {
+    if (unit === src) return;
+    const result = cm / lenToCm[unit];
+    document.getElementById(id).value = fmt(result, dec(result));
+  });
+}
+
+
+/* ── 9. Board Feet Calculator ── */
+function calcBoardFeet() {
+  const h = parseFloat(document.getElementById('bfH').value);
+  const l = parseFloat(document.getElementById('bfL').value);
+  const w = parseFloat(document.getElementById('bfW').value);
+  const el = document.getElementById('bfResult');
+  const ok = !isNaN(h) && !isNaN(l) && !isNaN(w) && h >= 0 && l >= 0 && w >= 0;
+  if (!ok) { el.textContent = '—'; return; }
+  const bf = (h * l * w) / 1728;
+  el.textContent = fmt(bf, dec(bf)) + ' ft³';
+}
+function clearBF() {
+  ['bfH','bfL','bfW'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('bfResult').textContent = '—';
+}
+
+/* ── copy ── */
+let tt;
+function cp(id) {
+  const v = document.getElementById(id).textContent;
+  if (v === '—') return;
+  navigator.clipboard.writeText(v).catch(()=>{});
+  const t = document.getElementById('toast');
+  t.classList.add('show'); clearTimeout(tt);
+  tt = setTimeout(()=>t.classList.remove('show'), 1700);
+}
+
+document.getElementById('lenA').focus();
+</script>
+</body>
+</html>
